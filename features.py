@@ -57,4 +57,59 @@ team_matches['goals_conceded_form'] = (
 )
 
 sample_team = team_matches[team_matches['team_id'] == 8559].head(10)
-print(sample_team[['date', 'goals_scored', 'goals_conceded', 'points', 'points_form']])
+# print(sample_team[['date', 'goals_scored', 'goals_conceded', 'points', 'points_form']])
+
+home_matches = team_matches[team_matches['is_home'] == True].copy()
+away_matches = team_matches[team_matches['is_home'] == False].copy()
+
+# .shift(1) -> to start calculations using values down by one row to prevent data leakeage ( where you use the real value to calculate it's predicted value)
+# window -> to select how many rows far back we use
+# min_periods -> min number of matches to have a form
+home_matches['home_form'] = (
+    home_matches.groupby('team_id')['points']
+    .transform(lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
+)
+
+home_matches['home_goals'] = (
+    home_matches.groupby('team_id')['goals_scored']
+    .transform(lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
+)
+
+home_matches['home_conceded'] = (
+    home_matches.groupby('team_id')['goals_conceded']
+    .transform(lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
+)
+
+away_matches['away_form'] = (
+    away_matches.groupby('team_id')['points']
+    .transform(lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
+)
+
+away_matches['away_goals'] = (
+    away_matches.groupby('team_id')['goals_scored']
+    .transform(lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
+)
+
+away_matches['away_conceded'] = (
+    away_matches.groupby('team_id')['goals_conceded']
+    .transform(lambda x: x.shift(1).rolling(window=5, min_periods=1).mean())
+)
+
+# print(home_matches[['match_id', 'team_id', 'home_form']].head(10))
+# print(team_matches[['match_id', 'team_id']].dtypes)
+# print(home_matches[['match_id', 'team_id']].dtypes)
+
+team_matches = team_matches.merge(
+    home_matches[['match_id', 'team_id', 'home_form', 'home_goals', 'home_conceded']],
+    on=['match_id', 'team_id'],
+    how='left'
+)
+
+team_matches = team_matches.merge(
+    away_matches[['match_id', 'team_id', 'away_form', 'away_goals', 'away_conceded']],
+    on=['match_id', 'team_id'],
+    how='left'
+)
+
+sample_team = team_matches[team_matches['team_id'] == 8559].head(10)
+print(sample_team[['date', 'is_home', 'home_form', 'away_form']])
