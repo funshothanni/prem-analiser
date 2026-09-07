@@ -111,5 +111,11 @@ team_matches = team_matches.merge(
     how='left'
 )
 
-sample_team = team_matches[team_matches['team_id'] == 8559].head(10)
-print(sample_team[['date', 'is_home', 'home_form', 'away_form']])
+
+team_matches['h2h_form'] = (
+    team_matches.groupby(['team_id', 'opponent_id'])['points']
+    .transform(lambda x: x.shift(1).rolling(window=4, min_periods=1).mean())
+)
+
+h2h_sample = team_matches[(team_matches['team_id'] == 8191) & (team_matches['opponent_id'] == 8456)]
+print(h2h_sample[['date', 'points', 'h2h_form']])
